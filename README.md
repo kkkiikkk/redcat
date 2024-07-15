@@ -2,18 +2,18 @@
 
 # To seed data before using (create user with email - admin@test.com and password - 122313)
 ```bash
-yarn seed:run
+npm run seed:run
 ```
 
 
 ## To run
 ```bash
-yarn install
+npm install
 // For dev environment
-yarn start:dev
+npm run start:dev
 // For production mode
-yarn run build
-yarn run start:prod
+npm run build
+npm run start:prod
 ```
 
 ## To run using docker
@@ -22,6 +22,9 @@ docker compose up
 ```
 
 ## To build docker container based on Dockerfile
+```bash
+docker built -t [username]/[imagename] .
+```
 
 ### After starting app you can see swagger documentation following that path - /api/docs
 
