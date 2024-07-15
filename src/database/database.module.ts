@@ -33,4 +33,4 @@ import { UserSeederService } from './seeds/userSeeder.service';
   ],
   providers: [UserSeederService],
 })
-export class DatabaseModule {}
+export class DatabaseModule { }
