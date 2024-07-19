@@ -36,6 +36,21 @@ import { RoleGuard } from '../Auth/guards/role.guard';
 import { Roles as RolesDecorator } from '../Auth/decorators/roles.decorator';
 import { CurrentUser } from '../Auth/decorators/currentUser.decorator';
 import {
+  InternalServerErrorResponseSchema,
+  UnauthorizedServerErrorResponseSchema,
+  ForbiddenServerErrorResponseSchema,
+  BadrequestServerErrorResponseSchema,
+} from '../../utils/swaggerSchemas';
+import {
+  GetAllTransactionsSuccessResponseSchema,
+  InvalidQueryPayloadErrorResponseSchema,
+  CreateTransactionSuccessResponseSchema,
+  OwnedTransactionsSuccessResponseSchema,
+  GetTransactionSuccessResponseSchema,
+  NotFoundTransactionErrorResponseSchema,
+  CancelTransactionsSuccessResponseSchema,
+} from './swaggerSchema';
+import {
   TRANSACTION_DEFAULT_GROUP,
   TRANSCATION_DETAIL_GROUP,
 } from './transaction.entity';
@@ -55,68 +70,11 @@ export class TranscationController {
     type: Number,
     enum: [5, 10, 20, 50],
   })
-  @ApiResponse({
-    status: 200,
-    description: 'List of all transactions',
-    schema: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          id: { type: 'string', format: 'uuid' },
-          amount: { type: 'number' },
-          transactionType: {
-            type: 'string',
-            enum: ['deposit', 'withdraw', 'transfer'],
-          },
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request',
-    schema: {
-      example: {
-        message: ['Invalid query parameters'],
-        error: 'Bad Request',
-        statusCode: 400,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized',
-    schema: {
-      example: {
-        message: 'Unauthorized',
-        error: 'Unauthorized',
-        statusCode: 401,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden',
-    schema: {
-      example: {
-        message: 'Forbidden',
-        error: 'Forbidden',
-        statusCode: 403,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal Server Error',
-    schema: {
-      example: {
-        message: 'Internal Server Error',
-        error: 'Internal Server Error',
-        statusCode: 500,
-      },
-    },
-  })
+  @ApiResponse(GetAllTransactionsSuccessResponseSchema)
+  @ApiResponse(InvalidQueryPayloadErrorResponseSchema)
+  @ApiResponse(UnauthorizedServerErrorResponseSchema)
+  @ApiResponse(ForbiddenServerErrorResponseSchema)
+  @ApiResponse(InternalServerErrorResponseSchema)
   @RolesDecorator(Roles.Admin)
   @UseGuards(AccessGuard, RoleGuard)
   @SerializeOptions({ groups: [TRANSACTION_DEFAULT_GROUP] })
@@ -127,56 +85,10 @@ export class TranscationController {
   @Post('deposit')
   @ApiOperation({ summary: 'Create a deposit transaction' })
   @ApiBody({ type: CreateTransactionDto })
-  @ApiResponse({
-    status: 201,
-    description: 'Transaction created successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', format: 'uuid' },
-        amount: { type: 'number' },
-        fromUser: { type: 'string' },
-        toUser: { type: 'string' },
-        transactionType: {
-          type: 'string',
-          enum: ['deposit', 'withdraw', 'transfer'],
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request',
-    schema: {
-      example: {
-        message: ['Validation error'],
-        error: 'Bad Request',
-        statusCode: 400,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized',
-    schema: {
-      example: {
-        message: 'Unauthorized',
-        error: 'Unauthorized',
-        statusCode: 401,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal Server Error',
-    schema: {
-      example: {
-        message: 'Internal Server Error',
-        error: 'Internal Server Error',
-        statusCode: 500,
-      },
-    },
-  })
+  @ApiResponse(CreateTransactionSuccessResponseSchema)
+  @ApiResponse(BadrequestServerErrorResponseSchema)
+  @ApiResponse(UnauthorizedServerErrorResponseSchema)
+  @ApiResponse(InternalServerErrorResponseSchema)
   @UseGuards(AccessGuard)
   async createDepositTransactions(
     @Body() payload: CreateTransactionDto,
@@ -188,56 +100,10 @@ export class TranscationController {
   @Post('withdraw')
   @ApiOperation({ summary: 'Create a withdrawal transaction' })
   @ApiBody({ type: CreateTransactionDto })
-  @ApiResponse({
-    status: 201,
-    description: 'Transaction created successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', format: 'uuid' },
-        amount: { type: 'number' },
-        fromUser: { type: 'string' },
-        toUser: { type: 'string' },
-        transactionType: {
-          type: 'string',
-          enum: ['deposit', 'withdraw', 'transfer'],
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request',
-    schema: {
-      example: {
-        message: ['Validation error'],
-        error: 'Bad Request',
-        statusCode: 400,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized',
-    schema: {
-      example: {
-        message: 'Unauthorized',
-        error: 'Unauthorized',
-        statusCode: 401,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal Server Error',
-    schema: {
-      example: {
-        message: 'Internal Server Error',
-        error: 'Internal Server Error',
-        statusCode: 500,
-      },
-    },
-  })
+  @ApiResponse(CreateTransactionSuccessResponseSchema)
+  @ApiResponse(BadrequestServerErrorResponseSchema)
+  @ApiResponse(UnauthorizedServerErrorResponseSchema)
+  @ApiResponse(InternalServerErrorResponseSchema)
   @UseGuards(AccessGuard)
   async createWithdrawTransactions(
     @Body() payload: CreateTransactionDto,
@@ -249,56 +115,10 @@ export class TranscationController {
   @Post('transfer')
   @ApiOperation({ summary: 'Create a transfer transaction' })
   @ApiBody({ type: CreateTransferTransactionDto })
-  @ApiResponse({
-    status: 201,
-    description: 'Transaction created successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', format: 'uuid' },
-        amount: { type: 'number' },
-        fromUser: { type: 'string' },
-        toUser: { type: 'string' },
-        transactionType: {
-          type: 'string',
-          enum: ['deposit', 'withdraw', 'transfer'],
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request',
-    schema: {
-      example: {
-        message: ['Validation error'],
-        error: 'Bad Request',
-        statusCode: 400,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized',
-    schema: {
-      example: {
-        message: 'Unauthorized',
-        error: 'Unauthorized',
-        statusCode: 401,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal Server Error',
-    schema: {
-      example: {
-        message: 'Internal Server Error',
-        error: 'Internal Server Error',
-        statusCode: 500,
-      },
-    },
-  })
+  @ApiResponse(CreateTransactionSuccessResponseSchema)
+  @ApiResponse(BadrequestServerErrorResponseSchema)
+  @ApiResponse(UnauthorizedServerErrorResponseSchema)
+  @ApiResponse(InternalServerErrorResponseSchema)
   @UseGuards(AccessGuard)
   async createTransferTransaction(
     @Body() payload: CreateTransferTransactionDto,
@@ -309,46 +129,9 @@ export class TranscationController {
 
   @Get('my')
   @ApiOperation({ summary: 'Get owned transactions' })
-  @ApiResponse({
-    status: 200,
-    description: 'List of owned transactions',
-    schema: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          id: { type: 'string', format: 'uuid' },
-          amount: { type: 'number' },
-          transactionType: {
-            type: 'string',
-            enum: ['deposit', 'withdraw', 'transfer'],
-          },
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized',
-    schema: {
-      example: {
-        message: 'Unauthorized',
-        error: 'Unauthorized',
-        statusCode: 401,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal Server Error',
-    schema: {
-      example: {
-        message: 'Internal Server Error',
-        error: 'Internal Server Error',
-        statusCode: 500,
-      },
-    },
-  })
+  @ApiResponse(OwnedTransactionsSuccessResponseSchema)
+  @ApiResponse(UnauthorizedServerErrorResponseSchema)
+  @ApiResponse(InternalServerErrorResponseSchema)
   @UseGuards(AccessGuard)
   @SerializeOptions({ groups: [TRANSACTION_DEFAULT_GROUP] })
   ownedTransactions(@CurrentUser() userId: string) {
@@ -357,56 +140,10 @@ export class TranscationController {
 
   @Get('/my/:id')
   @ApiOperation({ summary: 'Get owned transaction by ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Owned transaction information',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', format: 'uuid' },
-        amount: { type: 'number' },
-        fromUser: { type: 'string' },
-        toUser: { type: 'string' },
-        transactionType: {
-          type: 'string',
-          enum: ['deposit', 'withdraw', 'transfer'],
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized',
-    schema: {
-      example: {
-        message: 'Unauthorized',
-        error: 'Unauthorized',
-        statusCode: 401,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Transaction not found',
-    schema: {
-      example: {
-        message: 'Transaction not found',
-        error: 'Not Found',
-        statusCode: 404,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal Server Error',
-    schema: {
-      example: {
-        message: 'Internal Server Error',
-        error: 'Internal Server Error',
-        statusCode: 500,
-      },
-    },
-  })
+  @ApiResponse(GetTransactionSuccessResponseSchema)
+  @ApiResponse(UnauthorizedServerErrorResponseSchema)
+  @ApiResponse(NotFoundTransactionErrorResponseSchema)
+  @ApiResponse(InternalServerErrorResponseSchema)
   @UseGuards(AccessGuard)
   @SerializeOptions({
     groups: [TRANSACTION_DEFAULT_GROUP, TRANSCATION_DETAIL_GROUP],
@@ -423,67 +160,11 @@ export class TranscationController {
 
   @Get('/:id')
   @ApiOperation({ summary: 'Get transaction by ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Transaction information',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', format: 'uuid' },
-        amount: { type: 'number' },
-        fromUser: { type: 'string' },
-        toUser: { type: 'string' },
-        transactionType: {
-          type: 'string',
-          enum: ['deposit', 'withdraw', 'transfer'],
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized',
-    schema: {
-      example: {
-        message: 'Unauthorized',
-        error: 'Unauthorized',
-        statusCode: 401,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden',
-    schema: {
-      example: {
-        message: 'Forbidden',
-        error: 'Forbidden',
-        statusCode: 403,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Transaction not found',
-    schema: {
-      example: {
-        message: 'Transaction not found',
-        error: 'Not Found',
-        statusCode: 404,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal Server Error',
-    schema: {
-      example: {
-        message: 'Internal Server Error',
-        error: 'Internal Server Error',
-        statusCode: 500,
-      },
-    },
-  })
+  @ApiResponse(GetTransactionSuccessResponseSchema)
+  @ApiResponse(UnauthorizedServerErrorResponseSchema)
+  @ApiResponse(ForbiddenServerErrorResponseSchema)
+  @ApiResponse(NotFoundTransactionErrorResponseSchema)
+  @ApiResponse(InternalServerErrorResponseSchema)
   @ApiParam({ name: 'id', description: 'Transaction ID' })
   @RolesDecorator(Roles.Admin)
   @UseGuards(AccessGuard, RoleGuard)
@@ -496,54 +177,11 @@ export class TranscationController {
 
   @Post('/:id/cancel')
   @ApiOperation({ summary: 'Cancel transaction by ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Transaction cancelled successfully',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized',
-    schema: {
-      example: {
-        message: 'Unauthorized',
-        error: 'Unauthorized',
-        statusCode: 401,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden',
-    schema: {
-      example: {
-        message: 'Forbidden',
-        error: 'Forbidden',
-        statusCode: 403,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Transaction not found',
-    schema: {
-      example: {
-        message: 'Transaction not found',
-        error: 'Not Found',
-        statusCode: 404,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal Server Error',
-    schema: {
-      example: {
-        message: 'Internal Server Error',
-        error: 'Internal Server Error',
-        statusCode: 500,
-      },
-    },
-  })
+  @ApiResponse(CancelTransactionsSuccessResponseSchema)
+  @ApiResponse(UnauthorizedServerErrorResponseSchema)
+  @ApiResponse(ForbiddenServerErrorResponseSchema)
+  @ApiResponse(NotFoundTransactionErrorResponseSchema)
+  @ApiResponse(InternalServerErrorResponseSchema)
   @ApiParam({ name: 'id', description: 'Transaction ID' })
   @RolesDecorator(Roles.Admin)
   @UseGuards(AccessGuard, RoleGuard)
@@ -553,43 +191,10 @@ export class TranscationController {
 
   @Post('/my/:id/cancel')
   @ApiOperation({ summary: 'Cancel owned transaction by ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Transaction cancelled successfully',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized',
-    schema: {
-      example: {
-        message: 'Unauthorized',
-        error: 'Unauthorized',
-        statusCode: 401,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Transaction not found',
-    schema: {
-      example: {
-        message: 'Transaction not found',
-        error: 'Not Found',
-        statusCode: 404,
-      },
-    },
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal Server Error',
-    schema: {
-      example: {
-        message: 'Internal Server Error',
-        error: 'Internal Server Error',
-        statusCode: 500,
-      },
-    },
-  })
+  @ApiResponse(CancelTransactionsSuccessResponseSchema)
+  @ApiResponse(UnauthorizedServerErrorResponseSchema)
+  @ApiResponse(NotFoundTransactionErrorResponseSchema)
+  @ApiResponse(InternalServerErrorResponseSchema)
   @ApiParam({ name: 'id', description: 'Transaction ID' })
   @UseGuards(AccessGuard)
   async cancelMyTransaction(

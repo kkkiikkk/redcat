@@ -4,9 +4,16 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3001:3001"
-    env_file:
-      - .env
+      - '3001:3001'
+    environment:
+      - PORT=3001
+      - ACCESS_SECRET=access_token_secret
+      - REFRESH_SECRET=refresh_token_secret
+      - JWT_ACCESS_EXPIRE_TIME='10m'
+      - JWT_REFRESH_EXPIRE_TIME='25m'
+      - DB_LINK=postwgres://puser:password@localhost:5432/postgres
+      - NODE_ENV=develop
+      - COOKIE_MAX_AGE=90000000
     depends_on:
       - db
 
@@ -14,7 +21,7 @@ services:
     image: postgres:16
     restart: always
     ports:
-      - "5432:5432"
+      - '5432:5432'
     environment:
       POSTGRES_PASSWORD: password
       POSTGRES_USER: puser
