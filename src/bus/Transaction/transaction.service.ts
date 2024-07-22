@@ -7,10 +7,11 @@ import {
   Inject,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 
 // Entities
 import { Transaction, TransactionType } from './transaction.entity';
+import { User } from '../User/user.entity';
 
 // Instruments
 import { ICreateTransaction } from './transaction.interfaces';
@@ -22,12 +23,13 @@ import {
 import { GetTransactionsQueryDto } from './dtos/getTransactionsQuery.dto';
 
 @Injectable()
-export class TranscationService {
+export class TransactionService {
   constructor(
     @InjectRepository(Transaction)
     private readonly transactionRepository: Repository<Transaction>,
     @Inject(UserService)
-    private readonly userSevice: UserService,
+    private readonly userService: UserService,
+    private readonly dataSource: DataSource, // Inject DataSource
   ) {}
 
   createOne(payload: ICreateTransaction): Promise<Transaction> {
@@ -70,120 +72,168 @@ export class TranscationService {
   }
 
   async transfer(payload: CreateTransferTransactionDto, userId: string) {
-    const sender = await this.userSevice.findOneById(userId);
-    const reciever = await this.userSevice.findOneById(payload.toUser);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    if (sender.amount < payload.amount) {
-      throw new BadRequestException('Not enough money');
+    try {
+      const sender = await this.userService.findOneById(userId);
+      const receiver = await this.userService.findOneById(payload.toUser);
+
+      if (sender.amount < payload.amount) {
+        throw new BadRequestException('Not enough money');
+      }
+
+      if (!receiver) {
+        throw new NotFoundException('User does not exist');
+      }
+
+      if (receiver.isBlocked) {
+        throw new ConflictException('Cant perform transaction with that user');
+      }
+
+      const newTransaction = queryRunner.manager.create(Transaction, {
+        fromUser: userId,
+        transactionType: TransactionType.Transfer,
+        amount: payload.amount,
+        toUser: payload.toUser,
+      });
+
+      sender.amount -= payload.amount;
+      receiver.amount += payload.amount;
+      await queryRunner.manager.save(sender);
+      await queryRunner.manager.save(receiver);
+
+      const savedTransaction = await queryRunner.manager.save(newTransaction);
+      await queryRunner.commitTransaction();
+      return savedTransaction;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-
-    if (!reciever) {
-      throw new NotFoundException('User does not exist');
-    }
-
-    if (reciever.isBlocked) {
-      throw new ConflictException('Cant perfom transactin with that user');
-    }
-
-    const newTransaction = await this.createOne({
-      fromUser: userId,
-      transactionType: TransactionType.Transfer,
-      amount: payload.amount,
-      toUser: payload.toUser,
-    });
-
-    sender.amount -= payload.amount;
-    reciever.amount += payload.amount;
-    await this.userSevice.updateOne(sender);
-    await this.userSevice.updateOne(reciever);
-
-    return newTransaction;
   }
 
   async deposit(payload: CreateTransactionDto, userId: string) {
-    const user = await this.userSevice.findOneById(userId);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    const newTransaction = await this.createOne({
-      fromUser: userId,
-      transactionType: TransactionType.Deposit,
-      amount: payload.amount,
-    });
+    try {
+      const user = await this.userService.findOneById(userId);
 
-    user.amount += payload.amount;
-    await this.userSevice.updateOne(user);
+      const newTransaction = queryRunner.manager.create(Transaction, {
+        fromUser: userId,
+        transactionType: TransactionType.Deposit,
+        amount: payload.amount,
+      });
 
-    return newTransaction;
+      user.amount += payload.amount;
+      await queryRunner.manager.save(user);
+
+      const savedTransaction = await queryRunner.manager.save(newTransaction);
+      await queryRunner.commitTransaction();
+      return savedTransaction;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async withdraw(payload: CreateTransactionDto, userId: string) {
-    const user = await this.userSevice.findOneById(userId);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    if (user.amount < payload.amount) {
-      throw new BadRequestException('Not enough money');
+    try {
+      const user = await this.userService.findOneById(userId);
+
+      if (user.amount < payload.amount) {
+        throw new BadRequestException('Not enough money');
+      }
+
+      const newTransaction = queryRunner.manager.create(Transaction, {
+        fromUser: userId,
+        transactionType: TransactionType.Withdraw,
+        amount: payload.amount,
+      });
+
+      user.amount -= payload.amount;
+      await queryRunner.manager.save(user);
+
+      const savedTransaction = await queryRunner.manager.save(newTransaction);
+      await queryRunner.commitTransaction();
+      return savedTransaction;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-
-    const newTransaction = await this.createOne({
-      fromUser: userId,
-      transactionType: TransactionType.Withdraw,
-      amount: payload.amount,
-    });
-
-    user.amount -= payload.amount;
-    await this.userSevice.updateOne(user);
-
-    return newTransaction;
   }
 
   async cancelTransaction(transactionId: string, userId: string | null = null) {
-    let reciever = null;
-    const transaction = userId
-      ? await this.findOneById(transactionId)
-      : await this.findUserTransactionById(transactionId, userId);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    if (!transaction) {
-      throw new NotFoundException('Transaction with such id does not exist');
-    }
+    try {
+      const transaction = userId
+        ? await queryRunner.manager.findOne(Transaction, {
+            where: { id: transactionId, fromUser: userId },
+          })
+        : await queryRunner.manager.findOne(Transaction, {
+            where: { id: transactionId },
+          });
 
-    const transactionCreator = await this.userSevice.findOneById(
-      transaction.fromUser,
-    );
-
-    if (!transactionCreator) {
-      throw new NotFoundException('Creator of transaction does not exists');
-    }
-
-    if (transactionCreator.isBlocked) {
-      throw new BadRequestException('Creator of transaction is blocked');
-    }
-    if (transaction.transactionType === TransactionType.Transfer) {
-      reciever = await this.userSevice.findOneById(transaction.toUser);
-
-      if (!reciever) {
-        throw new NotFoundException('Reciever of transaction does not exists');
+      if (!transaction) {
+        throw new NotFoundException('Transaction with such id does not exist');
       }
 
-      if (reciever.isBlocked) {
-        throw new BadRequestException('Reciever of transaction is blocked');
+      const transactionCreator = await queryRunner.manager.findOne(User, {
+        where: { id: transaction.fromUser },
+      });
+
+      if (!transactionCreator) {
+        throw new NotFoundException('Creator of transaction does not exist');
       }
-    }
 
-    switch (transaction.transactionType) {
-      case TransactionType.Withdraw:
-        transactionCreator.amount += transaction.amount;
-        await this.userSevice.updateOne(transactionCreator);
-        break;
-      case TransactionType.Deposit:
-        transactionCreator.amount += transaction.amount;
-        await this.userSevice.updateOne(transactionCreator);
-        break;
-      case TransactionType.Transfer:
-        transactionCreator.amount += transaction.amount;
-        reciever.amount -= transaction.amount;
-        await this.userSevice.updateOne(transactionCreator);
-        await this.userSevice.updateOne(reciever);
-        break;
-    }
+      if (transactionCreator.isBlocked) {
+        throw new BadRequestException('Creator of transaction is blocked');
+      }
 
-    await this.transactionRepository.delete({ id: transactionId });
+      if (transaction.transactionType === TransactionType.Transfer) {
+        const receiver = await queryRunner.manager.findOne(User, {
+          where: { id: transaction.toUser },
+        });
+
+        if (!receiver) {
+          throw new NotFoundException('Receiver of transaction does not exist');
+        }
+
+        if (receiver.isBlocked) {
+          throw new BadRequestException('Receiver of transaction is blocked');
+        }
+
+        transactionCreator.amount += transaction.amount;
+        receiver.amount -= transaction.amount;
+        await queryRunner.manager.save(transactionCreator);
+        await queryRunner.manager.save(receiver);
+      } else {
+        transactionCreator.amount += transaction.amount;
+        await queryRunner.manager.save(transactionCreator);
+      }
+
+      await queryRunner.manager.delete(Transaction, { id: transactionId });
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

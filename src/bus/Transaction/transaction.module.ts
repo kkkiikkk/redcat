@@ -7,7 +7,7 @@ import { UserModule } from '../User/user.module';
 
 // Instruments
 import { Transaction } from './transaction.entity';
-import { TranscationService } from './transaction.service';
+import { TransactionService } from './transaction.service';
 
 // Controllers
 import { TranscationController } from './transaction.controller';
@@ -17,8 +17,8 @@ import { TranscationController } from './transaction.controller';
     TypeOrmModule.forFeature([Transaction]),
     forwardRef(() => UserModule),
   ],
-  providers: [TranscationService],
+  providers: [TransactionService],
   controllers: [TranscationController],
-  exports: [TranscationService],
+  exports: [TransactionService],
 })
 export class TransactionModule {}

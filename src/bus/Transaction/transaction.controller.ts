@@ -20,7 +20,7 @@ import {
 } from '@nestjs/swagger';
 
 // Services
-import { TranscationService } from './transaction.service';
+import { TransactionService } from './transaction.service';
 
 // Dtos
 import {
@@ -59,7 +59,7 @@ import {
 @Controller('transactions')
 @UseInterceptors(ClassSerializerInterceptor)
 export class TranscationController {
-  constructor(private readonly transcationService: TranscationService) {}
+  constructor(private readonly transcationService: TransactionService) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all transactions' })
